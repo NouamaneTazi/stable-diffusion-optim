@@ -5,6 +5,10 @@ from torch.profiler import profile, record_function, ProfilerActivity, tensorboa
 import datetime
 import time
 
+#CUDA AVAILABLE DEVICES
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 lms = LMSDiscreteScheduler(
     beta_start=0.00085, 
     beta_end=0.012, 
@@ -31,12 +35,11 @@ with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         with_stack=False
         ) as prof:
 
-    for _ in range(3):
-        start_time = time.time()
-        with autocast("cuda"):
-            image = pipe(prompt)["sample"][0]  
-        print(image)
-        print(f"Pipeline inference took {time.time() - start_time} seconds")
+    start_time = time.time()
+    with autocast("cuda"):
+        image = pipe(prompt)["sample"][0]  
+    print(image)
+    print(f"Pipeline inference took {time.time() - start_time} seconds")
         
 
 image.save("astronaut_rides_horse.png")
