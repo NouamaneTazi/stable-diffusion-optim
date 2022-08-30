@@ -8,7 +8,7 @@ import time
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-scheduler = LMSDiscreteScheduler(
+scheduler = PNDMScheduler(
     beta_start=0.00085, 
     beta_end=0.012, 
     beta_schedule="scaled_linear"
@@ -35,7 +35,7 @@ print(f"Pipeline inference took {time.time() - start_time} seconds")
 
 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-        on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_pt_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
+        on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_pt_PNDM_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
         record_shapes=True,
         profile_memory=False,
         with_stack=True
