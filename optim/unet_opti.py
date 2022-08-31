@@ -12,12 +12,18 @@ text_embeddings = joblib.load('text_embeddings.pkl')
 unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
 unet = UNet2DConditionModel.from_pretrained(unet_path, torch_dtype=None).cuda()
 
+# warmup
+with torch.no_grad():
+    with torch.autocast("cuda"):
+        for _ in range(10):
+            noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
+
 with torch.no_grad():
     with torch.autocast("cuda"):
         start_time = time.time()
         for _ in range(10):
             noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
-        print(f"Pipeline inference took {time.time() - start_time} seconds")
+        print(f"Pipeline inference took {time.time() - start_time} seconds") # Pipeline inference took 0.5688920021057129 seconds
 
 
 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
