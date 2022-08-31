@@ -5,18 +5,15 @@ from torch.profiler import profile, record_function, ProfilerActivity, tensorboa
 import joblib
 import time
 import torch
+torch.backends.cudnn.benchmark = True
 
-latent_model_input = joblib.load('latent_model_input.pkl')
-t = joblib.load('t.pkl')
-text_embeddings = joblib.load('text_embeddings.pkl')
+latent_model_input = joblib.load('latent_model_input_8.pkl')[:8]
+t = joblib.load('t_8.pkl')
+text_embeddings = joblib.load('text_embeddings_8.pkl')[:8]
 
 unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
 # unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/3bcaa468131c963401aa5175a14b13912b9f1933/unet' # fp16
 unet = UNet2DConditionModel.from_pretrained(unet_path).cuda()
-
-
-
-
 
 # warmup
 s = torch.cuda.Stream()
@@ -34,12 +31,10 @@ with torch.cuda.graph(g):
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
 
 
-
 import nvidia_dlprof_pytorch_nvtx
 nvidia_dlprof_pytorch_nvtx.init()
 
 with torch.autograd.profiler.emit_nvtx():
-
     for _ in range(3):
         start_time = time.time()
         g.replay()

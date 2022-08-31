@@ -6,7 +6,7 @@ import datetime
 import time
 #CUDA AVAILABLE DEVICES
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 scheduler = LMSDiscreteScheduler(
     beta_start=0.00085, 
@@ -17,14 +17,15 @@ scheduler = LMSDiscreteScheduler(
 pipe = StableDiffusionPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-3", 
     scheduler=scheduler,
-    use_auth_token=True
+    use_auth_token=True,
+    # revision="fp16",
 ).to("cuda")
 
 prompt = "a photo of an astronaut riding a horse on mars"
 
 # warmup
 with autocast("cuda"):
-    image = pipe(prompt, num_inference_steps=8)["sample"][0]  
+    image = pipe([prompt]*8, num_inference_steps=8)["sample"][0]  
 
 
 start_time = time.time()
@@ -36,9 +37,9 @@ print(f"Pipeline inference took {time.time() - start_time} seconds")
 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
         on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_pt_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
-        record_shapes=True,
+        record_shapes=False,
         profile_memory=False,
-        with_stack=True
+        with_stack=False
         ) as prof:
 
     start_time = time.time()
