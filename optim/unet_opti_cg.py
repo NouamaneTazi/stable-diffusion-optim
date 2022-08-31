@@ -19,17 +19,15 @@ s = torch.cuda.Stream()
 s.wait_stream(torch.cuda.current_stream())
 with torch.cuda.stream(s):
     with torch.no_grad():
-        with torch.autocast("cuda"):
-            for _ in range(3):
-                noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
+        for _ in range(3):
+            noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
 torch.cuda.current_stream().wait_stream(s)
 
 # capture
 g = torch.cuda.CUDAGraph()
 with torch.cuda.graph(g):
     with torch.no_grad():
-        with torch.autocast("cuda"):
-            noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
+        noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
 
 print(noise_pred.var())
 start_time = time.time()
