@@ -5,23 +5,15 @@ from torch.profiler import profile, record_function, ProfilerActivity, tensorboa
 import joblib
 import time
 import torch
+torch.backends.cudnn.benchmark = True
 
-latent_model_input = joblib.load('latent_model_input.pkl')
-t = joblib.load('t.pkl')
-text_embeddings = joblib.load('text_embeddings.pkl')
+latent_model_input = joblib.load('latent_model_input_8.pkl')[:8]
+t = joblib.load('t_8.pkl')
+text_embeddings = joblib.load('text_embeddings_8.pkl')[:8]
 
 unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
 # unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/3bcaa468131c963401aa5175a14b13912b9f1933/unet' # fp16
 unet = UNet2DConditionModel.from_pretrained(unet_path).cuda()
-
-
-with torch.no_grad():
-    for _ in range(3):
-        start_time = time.time()
-        noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
-        print(noise_pred.var())
-        print(f"Pipeline inference took {time.time() - start_time} seconds")
-
 
 # warmup
 s = torch.cuda.Stream()
@@ -38,12 +30,19 @@ with torch.cuda.graph(g):
     with torch.no_grad():
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
 
-print(noise_pred.var())
 for _ in range(3):
     start_time = time.time()
     g.replay()
     print(noise_pred.var())
     print(f"Pipeline inference took (CG) {time.time() - start_time} seconds")
+
+with torch.no_grad():
+    for _ in range(3):
+        with torch.autocast("cuda"):
+            start_time = time.time()
+            noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
+            print(noise_pred.var())
+            print(f"Pipeline inference took {time.time() - start_time} seconds")
 
 # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
 #         # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
