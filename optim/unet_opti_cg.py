@@ -7,11 +7,11 @@ import time
 import torch
 torch.backends.cudnn.benchmark = True
 
-latent_model_input = joblib.load('latent_model_input_8.pkl')[:8]
-t = joblib.load('t_8.pkl')
-text_embeddings = joblib.load('text_embeddings_8.pkl')[:8]
+latent_model_input = joblib.load('latent_model_input.pkl')[:8]
+t = joblib.load('t.pkl')
+text_embeddings = joblib.load('text_embeddings.pkl')[:8]
 
-unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
+unet_path = '/home/nouamane/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
 # unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/3bcaa468131c963401aa5175a14b13912b9f1933/unet' # fp16
 unet = UNet2DConditionModel.from_pretrained(unet_path).cuda()
 
@@ -38,9 +38,9 @@ for _ in range(3):
 
 with torch.no_grad():
     for _ in range(3):
-        latent_model_input = joblib.load('latent_model_input_8.pkl')[:8]
-        t = joblib.load('t_8.pkl')
-        text_embeddings = joblib.load('text_embeddings_8.pkl')[:8]
+        latent_model_input = joblib.load('latent_model_input.pkl')[:8]
+        t = joblib.load('t.pkl')
+        text_embeddings = joblib.load('text_embeddings.pkl')[:8]
         start_time = time.time()
         noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)["sample"]
         print(noise_pred.var())

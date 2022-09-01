@@ -9,7 +9,7 @@ latent_model_input = joblib.load('latent_model_input.pkl')
 t = joblib.load('t.pkl')
 text_embeddings = joblib.load('text_embeddings.pkl')
 
-unet_path = '/home/nouamane_huggingface_co/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
+unet_path = '/home/nouamane/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
 unet = UNet2DConditionModel.from_pretrained(unet_path, torch_dtype=None).cuda()
 
 # warmup

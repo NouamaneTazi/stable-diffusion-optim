@@ -25,7 +25,7 @@ prompt = "a photo of an astronaut riding a horse on mars"
 
 # warmup
 with autocast("cuda"):
-    image = pipe([prompt]*8, num_inference_steps=8)["sample"][0]  
+    image = pipe([prompt]*2, num_inference_steps=8)["sample"][0]  
 
 
 start_time = time.time()
