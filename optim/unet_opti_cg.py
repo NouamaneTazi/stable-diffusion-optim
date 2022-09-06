@@ -8,9 +8,9 @@ import torch
 
 from cg_test import graph
 
-torch.backends.cudnn.benchmark = False
-torch.manual_seed(123154)
-torch.cuda.manual_seed(123154)
+# torch.backends.cudnn.benchmark = True
+# torch.manual_seed(123154)
+# torch.cuda.manual_seed(123154)
 
 latent_model_input = joblib.load('latent_model_input.pkl')[:1]
 t = joblib.load('t.pkl')
