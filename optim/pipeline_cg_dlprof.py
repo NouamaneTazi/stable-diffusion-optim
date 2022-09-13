@@ -1,4 +1,4 @@
-# dlprof --nsys_opts="-t cuda,nvtx" --mode=pytorch --output_path=./dlprof_logs/pipeline_unet_cg python optim/baseline.py
+# dlprof --nsys_opts="-t cuda,nvtx" --mode=pytorch --output_path=./dlprof_logs/pipeline_unet_cg python optim/pipeline_cg_dlprof.py
 
 # make sure you're logged in with `huggingface-cli login`
 from torch import autocast
@@ -30,7 +30,7 @@ prompt = "a photo of an astronaut riding a horse on mars"
 
 torch.cuda.nvtx.range_push("warmup")
 with autocast("cuda"):
-    image = pipe([prompt]*1, num_inference_steps=8)["sample"][0]  
+    image = pipe([prompt]*2, num_inference_steps=8)["sample"][0]  
 torch.cuda.nvtx.range_pop()
 
 
@@ -38,7 +38,7 @@ for _ in range(3):
     torch.cuda.nvtx.range_push("inference")
     start_time = time.time()
     with autocast("cuda"):
-        image = pipe(prompt, num_inference_steps=50)["sample"][0]  
+        image = pipe([prompt]*2, num_inference_steps=50)["sample"][0]  
     print(image)
     print(f"Pipeline inference took {time.time() - start_time} seconds")
     torch.cuda.nvtx.range_pop()

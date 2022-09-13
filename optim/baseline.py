@@ -4,6 +4,7 @@ from diffusers import StableDiffusionPipeline, LMSDiscreteScheduler, PNDMSchedul
 from torch.profiler import profile, record_function, ProfilerActivity, tensorboard_trace_handler
 import datetime
 import time
+import torch
 #CUDA AVAILABLE DEVICES
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -18,7 +19,8 @@ pipe = StableDiffusionPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-3", 
     scheduler=scheduler,
     use_auth_token=True,
-    # revision="fp16",
+    revision="fp16",
+    torch_dtype=torch.float16
 ).to("cuda")
 
 prompt = "a photo of an astronaut riding a horse on mars"
@@ -28,10 +30,12 @@ with autocast("cuda"):
     image = pipe(prompt, num_inference_steps=8)["sample"][0]  
 
 for _ in range(3):
+    torch.cuda.synchronize()
     start_time = time.time()
-    with autocast("cuda"):
-        image = pipe(prompt, num_inference_steps=50)["sample"][0]  
-    print(image)
+    with torch.inference_mode():
+        with autocast("cuda"):
+            image = pipe(prompt, num_inference_steps=50)["sample"][0]  
+    torch.cuda.synchronize()
     print(f"Pipeline inference took {time.time() - start_time} seconds")
 image.save(f"pics/pic_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png")
 
@@ -43,9 +47,11 @@ with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         with_stack=True
         ) as prof:
 
+    torch.cuda.synchronize()
     start_time = time.time()
-    with autocast("cuda"):
-        image = pipe(prompt, num_inference_steps=4)["sample"][0]  
-    print(image)
+    with torch.inference_mode():
+        with autocast("cuda"):
+            image = pipe(prompt, num_inference_steps=8)["sample"][0]  
+    torch.cuda.synchronize()
     print(f"Pipeline inference took (w/ Profiler) {time.time() - start_time} seconds")
         
