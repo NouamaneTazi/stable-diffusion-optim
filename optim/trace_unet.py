@@ -6,6 +6,11 @@ import time
 import torch
 
 
+# test and see if these give better performance
+torch._C._jit_set_nvfuser_single_node_mode(True)
+# torch._C._jit_set_nvfuser_horizontal_mode(True)
+# torch._C._jit_set_nvfuser_guard_mode(False) 
+
 # CUDA VISIBLE DEVICE 
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -15,6 +20,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # torch disable grad
 torch.set_grad_enabled(False)
+
+torch.backends.cudnn.benchmark = True
 
 
 unet_path = '/home/nouamane/.cache/huggingface/diffusers/models--CompVis--stable-diffusion-v1-3/snapshots/c0399c1dac67eb30c20b40886872cee2fdf2e6b6/unet'
@@ -28,16 +35,37 @@ unet.to(memory_format=torch.channels_last) # in-place operation
 print(unet.conv_out.state_dict()['weight'].stride()) # (2880, 1, 960, 320) haveing a stride of 1 for the 2nd dimension proves that it works
 
 
+
+
 import joblib
 sample = joblib.load("sample.pkl").half()
 timestep = joblib.load("timestep.pkl").half()
 encoder_hidden_states = joblib.load("encoder_hidden_states.pkl").half()
-inputs = (sample, timestep, encoder_hidden_states, torch.tensor(False))
-
-orig_output = unet(*inputs)
 
 
+
+# warmup
+for _ in range(3):
+    with torch.inference_mode():
+        inputs = (torch.rand_like(sample) * sample.max(), torch.rand_like(timestep)*999, torch.rand_like(encoder_hidden_states) * encoder_hidden_states.max())
+        orig_output = unet(*inputs) 
+
+# trace        
 unet_traced = torch.jit.trace(unet, inputs)
+
+
+
+# warmup
+for _ in range(5):
+    with torch.inference_mode():
+        inputs = (torch.rand_like(sample) * sample.max(), torch.rand_like(timestep)*999, torch.rand_like(encoder_hidden_states) * encoder_hidden_states.max())
+        prev = orig_output
+        orig_output = unet_traced(*inputs) 
+
+
+# correctness
+inputs = (sample, timestep, encoder_hidden_states)
+orig_output = unet(*inputs)
 new_output = unet_traced(*inputs)
 try:
     torch.testing.assert_allclose(orig_output[0], new_output[0])
@@ -47,26 +75,16 @@ except AssertionError as e:
 # Greatest absolute difference: 0.0087890625 at index (0, 2, 8, 59) (up to 0.001 allowed)
 # Greatest relative difference: 54.20996441281139 at index (0, 2, 6, 62) (up to 0.001 allowed)
 
-# warmup
-for _ in range(5):
-    with torch.inference_mode():
-        orig_output = unet(*inputs) 
 
-# warmup
-for _ in range(5):
-    with torch.inference_mode():
-        orig_output = unet_traced(*inputs) 
-
-
-#benchmarking
+# benchmarking
 with torch.inference_mode():
-    for _ in range(3):
-        torch.cuda.synchronize()
-        start_time = time.time()
-        for _ in range(50):
-            orig_output = unet(*inputs)
-        torch.cuda.synchronize()
-        print(f"unet inference took {time.time() - start_time:.2f} seconds")
+    # for _ in range(3):
+    #     torch.cuda.synchronize()
+    #     start_time = time.time()
+    #     for _ in range(50):
+    #         orig_output = unet(*inputs)
+    #     torch.cuda.synchronize()
+    #     print(f"unet inference took {time.time() - start_time:.2f} seconds")
 
     for _ in range(3):
         torch.cuda.synchronize()
@@ -82,13 +100,14 @@ with torch.inference_mode():
 # unet (w/ channels last) traced inference took 3.18 seconds
 
 # save the model
-unet_traced.save("unet_traced_CL.pt")
+unet_traced.save("unet_traced_CL_nofloat_singlefuse.pt")
 
-assert False
+
+# assert False
 
 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-        on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_unet_traced_only_fp16_CL_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
+        on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_unet_traced_only_fp16_CL_nofloat_singlefuse_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
         record_shapes=True,
         profile_memory=True,
         with_stack=True
