@@ -27,18 +27,15 @@ pipe = StableDiffusionPipeline.from_pretrained(
 
 
 # warmup
-import joblib
 with torch.inference_mode():
-    images = pipe([prompt]*3, num_inference_steps=50).images
-joblib.dump(images, "images.joblib")
+    image = pipe([prompt]*3, num_inference_steps=5).images[0]
 
-# for _ in range(3):
-#     torch.cuda.synchronize()
-#     start_time = time.time()
-#     with torch.inference_mode():
-#         image = pipe([prompt]*3, num_inference_steps=50).images[0]
-#     torch.cuda.synchronize()
-#     print(f"Pipeline inference took {time.time() - start_time:.2f} seconds")
+for _ in range(3):
+    torch.cuda.synchronize()
+    start_time = time.time()
+    with torch.inference_mode():
+        image = pipe([prompt]*3, num_inference_steps=50).images[0]
+    torch.cuda.synchronize()
+    print(f"Pipeline inference took {time.time() - start_time:.2f} seconds")
 
-for image in images:
-    image.save(f"pics/pic_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png")
+image.save(f"pics/pic_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png")
