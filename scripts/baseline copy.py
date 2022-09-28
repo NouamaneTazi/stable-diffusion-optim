@@ -11,7 +11,7 @@ prompt = "a photo of an astronaut riding a horse on mars"
 
 # cudnn benchmarking
 torch.backends.cudnn.benchmark = True
-
+BATCH_SIZE = 1
 
 torch.manual_seed(1231)
 torch.cuda.manual_seed(1231)
@@ -21,20 +21,20 @@ pipe = StableDiffusionPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4", 
     # scheduler=scheduler,
     use_auth_token=True,
-    revision="fp16",
-    torch_dtype=torch.float16
+    # revision="fp16",
+    # torch_dtype=torch.float16
 ).to("cuda")
 
 
 # warmup
 with torch.inference_mode():
-    image = pipe([prompt]*3, num_inference_steps=5).images[0]
+    image = pipe([prompt]*BATCH_SIZE, num_inference_steps=5).images[0]
 
 for _ in range(3):
     torch.cuda.synchronize()
     start_time = time.time()
     with torch.inference_mode():
-        image = pipe([prompt]*3, num_inference_steps=50).images[0]
+        image = pipe([prompt]*BATCH_SIZE, num_inference_steps=50).images[0]
     torch.cuda.synchronize()
     print(f"Pipeline inference took {time.time() - start_time:.2f} seconds")
 
