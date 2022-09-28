@@ -3,3 +3,6 @@
 /old_tb_logs
 pics
 dlprof_logs
+__pycache__
+*.pkl
+*.log
