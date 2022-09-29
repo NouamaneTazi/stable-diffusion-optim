@@ -6,3 +6,4 @@ dlprof_logs
 __pycache__
 *.pkl
 *.log
+.vscode/
