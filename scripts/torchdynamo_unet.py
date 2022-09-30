@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import torch
 import torchdynamo
 from diffusers import UNet2DConditionModel
@@ -6,9 +7,64 @@ import time
 import datetime
 from torch.profiler import profile, record_function, ProfilerActivity, tensorboard_trace_handler
 
-backend = "inductor_cudagraphs"
+# backend = "eager" # 3.10s
+# backend = "aot_eager" # 3.10
+# backend = "aot_cudagraphs" # 3.44s
+# backend = "aot_nvfuser"
+# backend = "nvfuser" # 3.02s
+# backend = "inductor" # 3.28s
 
-torchdynamo.config.verbose = True
+# torchdynamo        
+# import torch
+# import torchdynamo
+
+# torchdynamo.config.verbose = True
+# # torchdynamo.config.dynamic_shapes = True
+
+# # def my_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
+# #     print("my_compiler() called with FX graph:")
+# #     gm.graph.print_tabular()
+# #     return gm.forward  # return a python callable
+# print("torchdynamo..")
+# #debugging
+# backend = "eager" # 3.15s
+# backend = "aot_eager" # 3.15s
+# # inference
+# backend = "ofi" # 3.13s
+# backend = "fx2trt"
+# backend = "onnxrt"
+# backend = "ipex" # CPU only
+# backend = "nvfuser" # 3.06
+# # backend = "nvfuser_ofi" # 3.12
+# # backend = "cudagraphs" # 3.14
+# backend = "cudagraphs_ts" # 3.08
+# # backend = "cudagraphs_ts_ofi" # 
+backend = "inductor" # 
+# # backend = "static_runtime" #
+# # backend = "nnc" # 3.09
+# print("backend:", backend)
+# unet_traced = torchdynamo.optimize(backend)(unet)
+# # print("done torchdynamo")
+# # unet_traced = torchdynamo.optimize("nvfuser")(unet)
+# # unet_traced = torchdynamo.optimize("cudagraphs_ts")(unet_traced)
+# unet_traced.eval()
+
+torchdynamo.config.HAS_REFS_PRIMS = True
+torchdynamo.config.capture_scalar_outputs = False
+torchdynamo.config.dead_code_elimination = True
+torchdynamo.config.dynamic_propagation = True
+torchdynamo.config.dynamic_shapes = False
+torchdynamo.config.enforce_cond_guards_match = True
+torchdynamo.config.fake_tensor_propagation = True
+torchdynamo.config.guard_nn_modules = False
+torchdynamo.config.normalize_ir = False
+torchdynamo.config.optimize_ddp = False
+torchdynamo.config.raise_on_assertion_error = False
+torchdynamo.config.raise_on_backend_error = True
+torchdynamo.config.raise_on_ctx_manager_usage = True
+torchdynamo.config.specialize_int_float = True
+torchdynamo.config.verbose = False
+torchdynamo.config.verify_correctness = False
 # torchdynamo.config.log_level = logging.DEBUG
 
 torch.set_grad_enabled(False)
@@ -30,7 +86,8 @@ unet_traced(sample, timestep, encoder_hidden_states)
 print("done")
 
 # benchmarking
-with torch.inference_mode():
+# with torch.inference_mode():
+with nullcontext():
     for _ in range(3):
         torch.cuda.synchronize()
         start_time = time.time()
