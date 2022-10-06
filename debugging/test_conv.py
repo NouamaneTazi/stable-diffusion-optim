@@ -15,18 +15,18 @@ for _ in range(3):
         out = conv2D(hidden_stats)
 
 
-with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-        on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_conv_fp16_CL_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
-        record_shapes=True,
-        profile_memory=False,
-        with_stack=True
-        ) as prof:
+# with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+#         # schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+#         on_trace_ready=tensorboard_trace_handler(f"./tb_logs/tb_conv_fp16_CL_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"),
+#         record_shapes=True,
+#         profile_memory=False,
+#         with_stack=True
+#         ) as prof:
 
-    torch.cuda.synchronize()
-    start_time = time.time()
-    for _ in range(3):
-        with torch.inference_mode():
-            out = conv2D(hidden_stats)
-    torch.cuda.synchronize()
-    print(f"Pipeline inference took (w/ Profiler) {time.time() - start_time:.2f} seconds")
+#     torch.cuda.synchronize()
+#     start_time = time.time()
+#     for _ in range(3):
+#         with torch.inference_mode():
+#             out = conv2D(hidden_stats)
+#     torch.cuda.synchronize()
+#     print(f"Pipeline inference took (w/ Profiler) {time.time() - start_time:.2f} seconds")
